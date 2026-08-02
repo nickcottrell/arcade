@@ -72,20 +72,23 @@
       return;
     }
     games.forEach(function (g) {
-      // Haberdash card component; the whole card and its Play button both launch.
-      var card = document.createElement("article");
+      // The card is a real <button> -- iOS Safari only fires tap->click reliably
+      // on interactive elements, so an <article> here silently ignores taps.
+      // Play is a styled <span> (a <button> can't nest inside a <button>).
+      var card = document.createElement("button");
       card.className = "card game-card";
+      card.type = "button";
       card.innerHTML =
-        '<div class="card__header">' +
-          '<div class="card__icon">' + esc(g.icon || "🎮") + "</div>" +
-          '<h3 class="card__title">' + esc(g.title) + "</h3>" +
-        "</div>" +
-        '<div class="card__body">' +
-          '<p class="card__description">' + esc(g.blurb || "") + "</p>" +
-        "</div>" +
-        '<div class="card__actions">' +
-          '<button class="btn btn--primary btn--sm" type="button">Play</button>' +
-        "</div>";
+        '<span class="card__header">' +
+          '<span class="card__icon">' + esc(g.icon || "🎮") + "</span>" +
+          '<span class="card__title">' + esc(g.title) + "</span>" +
+        "</span>" +
+        '<span class="card__body">' +
+          '<span class="card__description">' + esc(g.blurb || "") + "</span>" +
+        "</span>" +
+        '<span class="card__actions">' +
+          '<span class="btn btn--primary btn--sm">Play</span>' +
+        "</span>";
       card.addEventListener("click", function () { launch(g); });
       els.grid.appendChild(card);
     });

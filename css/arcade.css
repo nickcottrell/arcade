@@ -6,30 +6,29 @@
  */
 
 :root {
-  /* Haberdash's raw VRGB tokens are calc() expressions meant to be resolved by
-     the theme BUILDER, which injects concrete values at deploy. Standalone they
-     don't resolve (they mix % and unitless), so we play the builder here and
-     inject a concrete light-violet theme -- the MENU palette the Haberdash
-     card/grid/btn/type components read. */
-  --background:     hsl(268, 30%, 97%);
-  --surface:        #ffffff;
-  --surface-light:  hsl(268, 30%, 99%);
-  --text:           hsl(268, 10%, 16%);
-  --text-heading:   hsl(268, 16%, 11%);
-  --text-secondary: hsl(268, 8%, 45%);
-  --border:         hsl(268, 22%, 89%);
-  --border-light:   hsl(268, 20%, 93%);
-  --primary:        hsl(268, 62%, 58%);
-  --primary-hover:  hsl(268, 62%, 50%);
-  --primary-light:  hsl(268, 55%, 92%);
-  --secondary:      hsl(268, 18%, 45%);
+  /* FALLBACK ONLY. The live Haberdash theme is the Spectra node -- fetched by
+     spectra-theme-loader.js and injected into <style id="vrgb-tokens"> (which
+     is placed AFTER this file, so it wins). These neutral values just prevent a
+     broken/unstyled flash before the live theme lands, or if Spectra is down.
+     (Haberdash's own raw tokens are builder-resolved calc()s and don't render
+     standalone, so a fallback is required.) */
+  --background:     #1a1b1e;
+  --surface:        #232429;
+  --surface-light:  #2a2b31;
+  --text:           #e7e7ec;
+  --text-heading:   #f3f3f6;
+  --text-secondary: #9a9aa6;
+  --border:         #33343b;
+  --border-light:   #3a3b43;
+  --primary:        #6f8fe0;
+  --primary-hover:  #5c7dd6;
   --radius-base: 10px; --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 18px;
-  --shadow-sm: 0 1px 2px rgba(40, 20, 70, 0.06);
-  --shadow-md: 0 4px 12px rgba(40, 20, 70, 0.10);
-  --shadow-lg: 0 10px 24px rgba(40, 20, 70, 0.14);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.14);
 
-  /* Cabinet (gameplay) pinned DARK, decoupled from the Haberdash menu theme so
-     the in-game UI is unchanged. */
+  /* Cabinet (gameplay) pinned DARK, decoupled from the menu theme so the
+     in-game UI is unchanged regardless of the live theme. */
   --screen-bg: #0a0a0a;
   --cabinet-bg: #14151a;
   --cabinet-fg: #e8e8ea;
@@ -68,8 +67,8 @@ html, body {
 .arcade-masthead__title {
   margin: 0;
   letter-spacing: 0.02em;
-  /* Chromatic wordmark -- stops darkened so it reads on the light Haberdash bg. */
-  background: linear-gradient(90deg, hsl(0 75% 48%), hsl(150 62% 38%), hsl(255 72% 56%));
+  /* Chromatic wordmark -- bright saturated stops that read on the themed menu. */
+  background: linear-gradient(90deg, hsl(0 85% 64%), hsl(145 68% 55%), hsl(255 88% 70%));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -82,16 +81,30 @@ html, body {
 /* --- Picker (Haberdash .grid of .card) -------------------------------- */
 #game-grid { padding: var(--space-lg, 1rem); align-content: start; }
 
-/* Make the Haberdash card interactive as a whole (it launches on click). */
+/* The card is a real <button> (reliable tap on iOS). Reset native chrome and
+   lay out the now-<span> Haberdash sections as blocks. */
 .game-card {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
 }
+.game-card .card__header,
+.game-card .card__body { display: block; }
+.game-card .card__icon,
+.game-card .card__title,
+.game-card .card__description { display: block; }
+.game-card .card__body { flex: 1; }
+.game-card .card__actions { display: flex; justify-content: flex-end; }
+.game-card .btn { display: inline-flex; align-items: center; }
 .game-card:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
 .game-card:active { transform: scale(0.99); }
-.game-card .card__body { flex: 1; }
-.game-card .card__actions { justify-content: flex-end; }
 
 .arcade-empty, .arcade-error { color: var(--text-secondary, #666); padding: var(--space-lg, 1rem); }
 
