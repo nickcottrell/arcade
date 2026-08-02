@@ -1,8 +1,8 @@
 {
   "arcade": "Chromatic Arcade",
   "tagline": "VRGB games on the open substrate. Play in the browser.",
-  "note": "Dynamic manifest. The shell fetches this at load; add or retire a game here, no redeploy of the shell. Games are client-side ports of the bash ROMs in ../roms/.",
-  "version": 1,
+  "note": "Dynamic manifest. The shell fetches this at load; add or retire a game here, no redeploy of the shell. Games are client-side ports of the bash ROMs in the arcade-games repo.",
+  "version": 2,
   "games": [
     {
       "id": "chromafall",
@@ -10,6 +10,38 @@
       "blurb": "Tetris in colorspace. Each tetromino carries a hue; cleared lines emit their dominant color.",
       "module": "js/games/chromafall.js",
       "controls": ["left", "right", "rotate", "soft", "drop"],
+      "status": "live"
+    },
+    {
+      "id": "chess",
+      "title": "Maestro Chess",
+      "blurb": "Real chess on the substrate. You play White by tap; a negamax CPU plays Black. The eval swatch tints warm when you lead, azure when the CPU does.",
+      "module": "js/games/chess.js",
+      "controls": [],
+      "status": "live"
+    },
+    {
+      "id": "chomp",
+      "title": "Chain Chomp",
+      "blurb": "Pac-Man meets provenance chains. Eat the hottest dots first, build your chain multiplier, don't let a ghost break it.",
+      "module": "js/games/chomp.js",
+      "controls": ["up", "down", "left", "right"],
+      "status": "live"
+    },
+    {
+      "id": "trail",
+      "title": "Heat Trail",
+      "blurb": "Snake meets thermal decay. Your body cools and sheds cold segments; eat to reheat and grow, or wither and die.",
+      "module": "js/games/trail.js",
+      "controls": ["up", "down", "left", "right"],
+      "status": "live"
+    },
+    {
+      "id": "unfold",
+      "title": "Unfold",
+      "blurb": "Dimensional box-expansion platformer. Collect every jewel to open the exit; platforms cool and crumble under you.",
+      "module": "js/games/unfold.js",
+      "controls": ["left", "right", "jump"],
       "status": "live"
     }
   ]

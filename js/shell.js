@@ -116,12 +116,25 @@
     var host = makeHost(canvas);
     active = def.create(host);
 
+    // Tap-driven games (e.g. Chess) receive canvas taps in CSS pixels; the game
+    // maps pixels to its own grid. Games that don't define tap() ignore this.
+    bindCanvasTap(canvas);
+
     show(els.cabinet, els.picker);
     // Size after the cabinet is visible so layout is measurable.
     if (active.resize) { active.resize(); }
     active.start();
     bindKeys(true);
     bindResize(true);
+  }
+
+  function bindCanvasTap(canvas) {
+    canvas.addEventListener("pointerdown", function (e) {
+      if (!active || !active.tap) { return; }
+      e.preventDefault();
+      var r = canvas.getBoundingClientRect();
+      active.tap(e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    });
   }
 
   function toPicker() {
@@ -197,13 +210,16 @@
   }
 
   // --- Input bus: keyboard + touch pad -> abstract actions ---------------
-  var KEYMAP = {
-    ArrowLeft: "left", ArrowRight: "right", ArrowUp: "rotate",
-    ArrowDown: "soft", " ": "drop", Spacebar: "drop"
+  // Default canonical map. A game may override via def.keymap (e.g. Chromafall
+  // maps ArrowUp -> rotate). Keys are KeyboardEvent.key values.
+  var DEFAULT_KEYMAP = {
+    ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up",
+    ArrowDown: "down", " ": "action", Spacebar: "action"
   };
 
   function onKey(e) {
-    var a = KEYMAP[e.key];
+    var map = (activeDef && activeDef.keymap) || DEFAULT_KEYMAP;
+    var a = map[e.key];
     if (!a) { return; }
     e.preventDefault();
     dispatch(a);
@@ -232,9 +248,11 @@
   }
 
   var LABELS = {
-    left: "←", right: "→", rotate: "↺",
-    soft: "↓", drop: "⤓"
+    left: "←", right: "→", up: "↑", down: "↓",
+    rotate: "↺", soft: "↓", drop: "⤓", jump: "⤒", action: "●"
   };
+  // Which controls auto-repeat while the button is held down.
+  var REPEATABLE = { left: 1, right: 1, down: 1, soft: 1, up: 1 };
 
   function buildPad(controls) {
     els.pad.innerHTML = "";
@@ -246,7 +264,7 @@
       b.setAttribute("aria-label", name);
       // Pointer events cover both touch and mouse; repeat while held for moves.
       var timer = null;
-      var repeatable = (name === "left" || name === "right" || name === "soft");
+      var repeatable = !!REPEATABLE[name];
       b.addEventListener("pointerdown", function (e) {
         e.preventDefault();
         dispatch(name);
