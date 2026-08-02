@@ -199,6 +199,25 @@ html, body {
 .pad-btn:active { border-color: var(--accent); background: var(--cabinet-edge); }
 .pad-btn--drop { color: var(--accent); }
 
+/* D-pad cross: left | (up over down) | right, with left/right vertically
+   centered between up and down. Applied when the control set is a full D-pad. */
+.control-pad--dpad {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    "left up    right"
+    "left down  right";
+  gap: 0.5rem;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.control-pad--dpad .pad-btn { max-width: none; width: 100%; }
+.control-pad--dpad .pad-btn--up { grid-area: up; }
+.control-pad--dpad .pad-btn--down { grid-area: down; }
+.control-pad--dpad .pad-btn--left { grid-area: left; align-self: center; }
+.control-pad--dpad .pad-btn--right { grid-area: right; align-self: center; }
+
 /* --- Game over -------------------------------------------------------- */
 .game-over {
   position: absolute;

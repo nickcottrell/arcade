@@ -266,6 +266,11 @@
 
   function buildPad(controls) {
     els.pad.innerHTML = "";
+    // A full directional set lays out as a D-pad cross (left | up/down | right);
+    // any other set stays a simple centered row.
+    var isDpad = controls.indexOf("up") >= 0 && controls.indexOf("down") >= 0 &&
+                 controls.indexOf("left") >= 0 && controls.indexOf("right") >= 0;
+    els.pad.className = "control-pad" + (isDpad ? " control-pad--dpad" : "");
     controls.forEach(function (name) {
       var b = document.createElement("button");
       b.className = "pad-btn pad-btn--" + name;
