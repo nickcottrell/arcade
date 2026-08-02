@@ -1,0 +1,16 @@
+{
+  "arcade": "Chromatic Arcade",
+  "tagline": "VRGB games on the open substrate. Play in the browser.",
+  "note": "Dynamic manifest. The shell fetches this at load; add or retire a game here, no redeploy of the shell. Games are client-side ports of the bash ROMs in ../roms/.",
+  "version": 1,
+  "games": [
+    {
+      "id": "chromafall",
+      "title": "Chromafall",
+      "blurb": "Tetris in colorspace. Each tetromino carries a hue; cleared lines emit their dominant color.",
+      "module": "js/games/chromafall.js",
+      "controls": ["left", "right", "rotate", "soft", "drop"],
+      "status": "live"
+    }
+  ]
+}

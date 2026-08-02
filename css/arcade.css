@@ -1,0 +1,187 @@
+/*
+ * Chromatic Arcade -- public browser arcade.
+ * Mobile-first: the target surface is a phone held in portrait. Layout is
+ * semantic (no inline styles); color comes from Haberdash tokens so the whole
+ * cabinet re-themes from one variable set (VRGB over Haberdash).
+ */
+
+:root {
+  --screen-bg: #0a0a0a;
+  --cabinet-bg: var(--background, #111216);
+  --cabinet-fg: var(--text, #e8e8ea);
+  --cabinet-dim: var(--muted, #7c7f8a);
+  --cabinet-edge: var(--border, #2a2c34);
+  --accent: var(--primary, #4db3ff);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--screen-bg);
+  color: var(--cabinet-fg);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+.arcade {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;   /* fit the VISIBLE viewport on iOS (excludes the Safari toolbar) */
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Masthead --------------------------------------------------------- */
+.arcade-masthead {
+  padding: 1.25rem 1rem 0.75rem;
+  text-align: center;
+}
+.arcade-masthead__title {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  background: linear-gradient(90deg, hsl(0 80% 60%), hsl(120 70% 55%), hsl(240 80% 62%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.arcade-masthead__tagline {
+  margin: 0.35rem 0 0;
+  color: var(--cabinet-dim);
+  font-size: 0.85rem;
+}
+
+/* --- Picker ----------------------------------------------------------- */
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+@media (min-width: 420px) {
+  .game-grid { grid-template-columns: 1fr 1fr; }
+}
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+  padding: 1rem;
+  border: 1px solid var(--cabinet-edge);
+  border-radius: 12px;
+  background: var(--cabinet-bg);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.game-card:hover { border-color: var(--accent); }
+.game-card:active { transform: scale(0.98); }
+.game-card__title { font-size: 1.15rem; font-weight: 600; }
+.game-card__blurb { font-size: 0.85rem; color: var(--cabinet-dim); }
+.game-card__cta { margin-top: 0.25rem; color: var(--accent); font-weight: 600; }
+
+.arcade-empty, .arcade-error { color: var(--cabinet-dim); padding: 1rem; }
+
+/* --- Cabinet (in-game) ------------------------------------------------ */
+.cabinet {
+  display: flex;
+  flex-direction: column;
+  /* Exactly the visible viewport so the control pad is always reachable and
+     never hidden behind the iOS Safari bottom toolbar. dvh tracks the toolbar
+     showing/hiding; vh is the fallback for older browsers. */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+.cabinet-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--cabinet-edge);
+}
+.cabinet-bar__title { font-weight: 600; flex: 1; }
+.cabinet-bar__score { color: var(--accent); font-variant-numeric: tabular-nums; }
+.cabinet-bar__score .label { color: var(--cabinet-dim); font-weight: 400; margin-right: 0.3rem; }
+
+.back-btn {
+  border: 1px solid var(--cabinet-edge);
+  background: transparent;
+  color: var(--cabinet-fg);
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+}
+
+.surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  position: relative;
+}
+.game-canvas {
+  display: block;
+  image-rendering: pixelated;
+  border: 1px solid var(--cabinet-edge);
+  border-radius: 4px;
+  touch-action: none;
+}
+
+/* --- Scoreboard ------------------------------------------------------- */
+.stat-row {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 0.4rem 1rem;
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat__label { display: block; font-size: 0.7rem; color: var(--cabinet-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat__value { display: block; font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* --- Control pad (touch) ---------------------------------------------- */
+.control-pad {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+}
+.pad-btn {
+  flex: 1;
+  max-width: 84px;
+  min-height: 60px;
+  font-size: 1.5rem;
+  border: 1px solid var(--cabinet-edge);
+  border-radius: 12px;
+  background: var(--cabinet-bg);
+  color: var(--cabinet-fg);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pad-btn:active { border-color: var(--accent); background: var(--cabinet-edge); }
+.pad-btn--drop { color: var(--accent); }
+
+/* --- Game over -------------------------------------------------------- */
+.game-over {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 10, 0.82);
+  border-radius: 4px;
+}
+.game-over__panel { text-align: center; padding: 1.5rem; }
+.game-over__title { margin: 0 0 0.75rem; color: hsl(0 80% 62%); }
+.game-over__stats { list-style: none; margin: 0 0 1.25rem; padding: 0; color: var(--cabinet-fg); }
+.game-over__stats li { padding: 0.15rem 0; font-variant-numeric: tabular-nums; }
+.game-over__actions { display: flex; gap: 0.5rem; justify-content: center; }

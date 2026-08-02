@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Chromatic Arcade</title>
+  <link rel="stylesheet" href="https://nickcottrell.github.io/haberdash/haberdash.css">
+  <link rel="stylesheet" href="css/arcade.css?v=2">
+</head>
+<body>
+  <main class="arcade">
+
+    <!-- Picker -->
+    <section id="picker" class="picker">
+      <header class="arcade-masthead">
+        <h1 class="arcade-masthead__title">Chromatic Arcade</h1>
+        <p class="arcade-masthead__tagline" id="arcade-tagline">Loading&hellip;</p>
+      </header>
+      <div id="game-grid" class="game-grid"></div>
+    </section>
+
+    <!-- Cabinet (one game at a time) -->
+    <section id="cabinet" class="cabinet" hidden>
+      <div class="cabinet-bar">
+        <button id="back-btn" class="back-btn" type="button" aria-label="Back to menu">&lsaquo; Menu</button>
+        <span id="cabinet-title" class="cabinet-bar__title"></span>
+        <span class="cabinet-bar__score"><span class="label">Score</span><span id="score-value">0</span></span>
+      </div>
+      <div id="surface" class="surface"></div>
+      <div id="stat-row" class="stat-row"></div>
+      <div id="control-pad" class="control-pad"></div>
+    </section>
+
+  </main>
+  <script src="js/shell.js?v=2"></script>
+</body>
+</html>
