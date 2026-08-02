@@ -7,18 +7,18 @@
   <title>Chromatic Arcade</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text x=%221%22 y=%2214%22 font-size=%2214%22>&#127918;</text></svg>">
   <link rel="stylesheet" href="https://nickcottrell.github.io/haberdash/haberdash.css">
-  <link rel="stylesheet" href="css/arcade.css?v=2">
+  <link rel="stylesheet" href="css/arcade.css?v=4">
 </head>
 <body>
   <main class="arcade">
 
-    <!-- Picker -->
+    <!-- Picker (Haberdash) -->
     <section id="picker" class="picker">
       <header class="arcade-masthead">
-        <h1 class="arcade-masthead__title">Chromatic Arcade</h1>
-        <p class="arcade-masthead__tagline" id="arcade-tagline">Loading&hellip;</p>
+        <h1 class="arcade-masthead__title font-3xl font-bold">Chromatic Arcade</h1>
+        <p class="arcade-masthead__tagline font-sm" id="arcade-tagline">Loading&hellip;</p>
       </header>
-      <div id="game-grid" class="game-grid"></div>
+      <div id="game-grid" class="grid grid--2 gap-md"></div>
     </section>
 
     <!-- Cabinet (one game at a time) -->
@@ -37,6 +37,6 @@
   <!-- chess.js 0.10.3 vendored (top-level `var Chess` -> global) -- the legality
        referee for the Chess port. Vendored so there's no CDN/ESM ambiguity. -->
   <script src="js/vendor/chess.js"></script>
-  <script src="js/shell.js?v=3"></script>
+  <script src="js/shell.js?v=4"></script>
 </body>
 </html>

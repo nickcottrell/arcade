@@ -7,6 +7,7 @@
     {
       "id": "chromafall",
       "title": "Chromafall",
+      "icon": "🧱",
       "blurb": "Tetris in colorspace. Each tetromino carries a hue; cleared lines emit their dominant color.",
       "module": "js/games/chromafall.js",
       "controls": ["left", "right", "rotate", "soft", "drop"],
@@ -15,6 +16,7 @@
     {
       "id": "chess",
       "title": "Maestro Chess",
+      "icon": "♟️",
       "blurb": "Real chess on the substrate. You play White by tap; a negamax CPU plays Black. The eval swatch tints warm when you lead, azure when the CPU does.",
       "module": "js/games/chess.js",
       "controls": [],
@@ -23,6 +25,7 @@
     {
       "id": "chomp",
       "title": "Chain Chomp",
+      "icon": "🟡",
       "blurb": "Pac-Man meets provenance chains. Eat the hottest dots first, build your chain multiplier, don't let a ghost break it.",
       "module": "js/games/chomp.js",
       "controls": ["up", "down", "left", "right"],
@@ -31,6 +34,7 @@
     {
       "id": "trail",
       "title": "Heat Trail",
+      "icon": "🐍",
       "blurb": "Snake meets thermal decay. Your body cools and sheds cold segments; eat to reheat and grow, or wither and die.",
       "module": "js/games/trail.js",
       "controls": ["up", "down", "left", "right"],
@@ -39,6 +43,7 @@
     {
       "id": "unfold",
       "title": "Unfold",
+      "icon": "📦",
       "blurb": "Dimensional box-expansion platformer. Collect every jewel to open the exit; platforms cool and crumble under you.",
       "module": "js/games/unfold.js",
       "controls": ["left", "right", "jump"],

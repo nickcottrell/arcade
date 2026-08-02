@@ -72,13 +72,20 @@
       return;
     }
     games.forEach(function (g) {
-      var card = document.createElement("button");
-      card.className = "game-card";
-      card.type = "button";
+      // Haberdash card component; the whole card and its Play button both launch.
+      var card = document.createElement("article");
+      card.className = "card game-card";
       card.innerHTML =
-        '<span class="game-card__title">' + esc(g.title) + "</span>" +
-        '<span class="game-card__blurb">' + esc(g.blurb || "") + "</span>" +
-        '<span class="game-card__cta">Play &rsaquo;</span>';
+        '<div class="card__header">' +
+          '<div class="card__icon">' + esc(g.icon || "🎮") + "</div>" +
+          '<h3 class="card__title">' + esc(g.title) + "</h3>" +
+        "</div>" +
+        '<div class="card__body">' +
+          '<p class="card__description">' + esc(g.blurb || "") + "</p>" +
+        "</div>" +
+        '<div class="card__actions">' +
+          '<button class="btn btn--primary btn--sm" type="button">Play</button>' +
+        "</div>";
       card.addEventListener("click", function () { launch(g); });
       els.grid.appendChild(card);
     });
