@@ -1,8 +1,11 @@
 /*
- * Chromatic Arcade -- public browser arcade.
+ * Arcade -- public browser arcade.
  * Mobile-first: the target surface is a phone held in portrait. Layout is
  * semantic (no inline styles); color comes from Haberdash tokens so the whole
  * cabinet re-themes from one variable set (VRGB over Haberdash).
+ *
+ * Chrome is THIN: the game (the content) owns the space; the bar, scoreboard,
+ * and pad are slim strips at the edges, present but never bulky.
  */
 
 :root {
@@ -63,25 +66,6 @@ html, body {
   flex-direction: column;
 }
 
-/* --- Masthead --------------------------------------------------------- */
-.arcade-masthead {
-  padding: var(--space-xl, 1.25rem) var(--space-lg, 1rem) var(--space-md, 0.75rem);
-  text-align: center;
-}
-.arcade-masthead__title {
-  margin: 0;
-  letter-spacing: 0.02em;
-  /* Chromatic wordmark -- bright saturated stops that read on the themed menu. */
-  background: linear-gradient(90deg, hsl(0 85% 64%), hsl(145 68% 55%), hsl(255 88% 70%));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.arcade-masthead__tagline {
-  margin: var(--space-xs, 0.35rem) 0 0;
-  color: var(--text-secondary, #666);
-}
-
 /* --- Picker (Haberdash .grid of .card) -------------------------------- */
 #game-grid { padding: var(--space-lg, 1rem); align-content: start; }
 
@@ -126,14 +110,16 @@ html, body {
   height: 100dvh;
   min-height: 0;
 }
+/* Thin top strip: back, title, score on one slim line. */
 .cabinet-bar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.6rem 0.9rem;
+  gap: 0.5rem;
+  padding: 0.28rem 0.6rem;
   border-bottom: 1px solid var(--cabinet-edge);
+  font-size: 0.82rem;
 }
-.cabinet-bar__title { font-weight: 600; flex: 1; }
+.cabinet-bar__title { font-weight: 600; flex: 1; letter-spacing: 0.02em; }
 .cabinet-bar__score { color: var(--accent); font-variant-numeric: tabular-nums; }
 .cabinet-bar__score .label { color: var(--cabinet-dim); font-weight: 400; margin-right: 0.3rem; }
 
@@ -141,8 +127,9 @@ html, body {
   border: 1px solid var(--cabinet-edge);
   background: transparent;
   color: var(--cabinet-fg);
-  border-radius: 8px;
-  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
@@ -163,30 +150,31 @@ html, body {
   touch-action: none;
 }
 
-/* --- Scoreboard ------------------------------------------------------- */
+/* --- Scoreboard: a thin inline strip (label value, side by side) ------- */
 .stat-row {
   display: flex;
   justify-content: center;
-  gap: 1.25rem;
-  padding: 0.4rem 1rem;
+  gap: 1rem;
+  padding: 0.22rem 0.75rem;
   flex-wrap: wrap;
+  border-top: 1px solid var(--cabinet-edge);
 }
-.stat { text-align: center; }
-.stat__label { display: block; font-size: 0.7rem; color: var(--cabinet-dim); text-transform: uppercase; letter-spacing: 0.05em; }
-.stat__value { display: block; font-size: 1.1rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat { display: flex; align-items: baseline; gap: 0.3rem; }
+.stat__label { font-size: 0.62rem; color: var(--cabinet-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat__value { font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* --- Control pad (touch) ---------------------------------------------- */
 .control-pad {
   display: flex;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+  padding: 0.4rem 0.6rem calc(0.45rem + env(safe-area-inset-bottom));
 }
 .pad-btn {
   flex: 1;
   max-width: 84px;
-  min-height: 60px;
-  font-size: 1.5rem;
+  min-height: 52px;
+  font-size: 1.4rem;
   border: 1px solid var(--cabinet-edge);
   border-radius: 12px;
   background: var(--cabinet-bg);

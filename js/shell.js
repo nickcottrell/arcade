@@ -25,6 +25,7 @@
   var loaded = {};         // id -> true once its module script has run
   var active = null;       // current mounted instance
   var activeDef = null;
+  var soloMode = false;    // true on game.html: one game, no picker
 
   // --- DOM handles -------------------------------------------------------
   var els = {};
@@ -36,8 +37,21 @@
   };
   window.ArcadeShell = ArcadeShell;
 
-  // --- Manifest + picker -------------------------------------------------
+  // --- Boot: two surfaces, one shell -------------------------------------
+  // index.html is the launcher (picker only). game.html?id=<id> is the game
+  // host (one game, no picker) -- the launcher opens it in its own window.
   function boot() {
+    cacheEls();
+    var id = new URLSearchParams(window.location.search).get("id");
+    if (id && els.surface) {
+      soloMode = true;
+      bootGame(id);
+    } else {
+      bootLauncher();
+    }
+  }
+
+  function cacheEls() {
     els.picker = $("picker");
     els.grid = $("game-grid");
     els.cabinet = $("cabinet");
@@ -48,21 +62,47 @@
     els.pad = $("control-pad");
     els.back = $("back-btn");
     els.tagline = $("arcade-tagline");
+    if (els.back) { els.back.addEventListener("click", toPicker); }
+  }
 
-    els.back.addEventListener("click", toPicker);
+  function fetchManifest() {
+    return fetch(MANIFEST_URL + "?v=" + Date.now()).then(function (r) { return r.json(); });
+  }
 
-    var bust = "?v=" + Date.now();
-    fetch(MANIFEST_URL + bust)
-      .then(function (r) { return r.json(); })
-      .then(renderPicker)
-      .catch(function () {
-        els.grid.innerHTML =
-          '<p class="arcade-error">Could not load the game manifest.</p>';
-      });
+  function bootLauncher() {
+    if (!els.grid) { return; }
+    fetchManifest().then(renderPicker).catch(function () {
+      els.grid.innerHTML =
+        '<p class="arcade-error">Could not load the game manifest.</p>';
+    });
+  }
+
+  function bootGame(id) {
+    fetchManifest().then(function (manifest) {
+      var g = (manifest.games || []).filter(function (x) { return x.id === id; })[0];
+      if (!g) {
+        els.surface.innerHTML = '<p class="arcade-error">Unknown game: ' + esc(id) + "</p>";
+        return;
+      }
+      document.title = (g.title || "Arcade");
+      launch(g);
+    }).catch(function () {
+      els.surface.innerHTML = '<p class="arcade-error">Could not load the game.</p>';
+    });
+  }
+
+  // Open a game in its own window (reused by name, so a new pick swaps it).
+  function openGame(g) {
+    if (window.ArcadeSFX) { window.ArcadeSFX.resume(); window.ArcadeSFX.play("select"); }
+    announce(g.title);
+    var url = "game.html?id=" + encodeURIComponent(g.id);
+    var feats = "popup=yes,width=600,height=900,resizable=yes,scrollbars=no";
+    var w = window.open(url, "arcade-game", feats);
+    if (w) { w.focus(); } else { window.location.href = url; }
   }
 
   function renderPicker(manifest) {
-    if (manifest.tagline) { els.tagline.textContent = manifest.tagline; }
+    if (manifest.tagline && els.tagline) { els.tagline.textContent = manifest.tagline; }
     var games = (manifest.games || []).filter(function (g) {
       return g.status === "live";
     });
@@ -89,7 +129,7 @@
         '<span class="card__actions">' +
           '<span class="btn btn--primary btn--sm">Play</span>' +
         "</span>";
-      card.addEventListener("click", function () { launch(g); });
+      card.addEventListener("click", function () { openGame(g); });
       els.grid.appendChild(card);
     });
   }
@@ -123,6 +163,8 @@
 
     buildPad(def.controls || []);
 
+    if (window.ArcadeSFX) { window.ArcadeSFX.resume(); }
+
     var host = makeHost(canvas);
     active = def.create(host);
 
@@ -130,10 +172,13 @@
     // maps pixels to its own grid. Games that don't define tap() ignore this.
     bindCanvasTap(canvas);
 
-    show(els.cabinet, els.picker);
+    if (els.picker) { show(els.cabinet, els.picker); }
+    else if (els.cabinet) { els.cabinet.hidden = false; }
     // Size after the cabinet is visible so layout is measurable.
     if (active.resize) { active.resize(); }
     active.start();
+    if (window.ArcadeSFX) { window.ArcadeSFX.play("start"); }
+    announce("Go");
     bindKeys(true);
     bindResize(true);
   }
@@ -153,20 +198,38 @@
     if (active && active.stop) { active.stop(); }
     active = null;
     activeDef = null;
-    els.surface.innerHTML = "";
+    if (els.surface) { els.surface.innerHTML = ""; }
+    // In its own window the game IS the window -- Menu closes it back to the
+    // launcher. In a combined page, swap back to the picker.
+    if (soloMode) { window.close(); return; }
     show(els.picker, els.cabinet);
   }
 
   // --- Host given to each game ------------------------------------------
   function makeHost(canvas) {
+    var lastScore = null;
     return {
       canvas: canvas,
       ctx: canvas.getContext("2d"),
-      setScore: function (n) { els.score.textContent = String(n); },
+      sfx: window.ArcadeSFX || null,
+      setScore: function (n) {
+        els.score.textContent = String(n);
+        if (lastScore != null && n > lastScore && window.ArcadeSFX) { window.ArcadeSFX.play("point"); }
+        lastScore = n;
+      },
       setStat: function (name, value) { renderStat(name, value); },
-      gameOver: function (summary) { showGameOver(summary); },
+      gameOver: function (summary) { endCues(summary); showGameOver(summary); },
       palette: {}   // reserved for VRGB theme injection
     };
+  }
+
+  // Game end: a win/lose jingle + a spoken line (routed to cue-vox when hosted).
+  function endCues(summary) {
+    var title = (summary && summary.title) || "Game over";
+    var win = /win|clear|complete|unfold/i.test(title);
+    if (window.ArcadeSFX) { window.ArcadeSFX.play(win ? "win" : "lose"); }
+    var first = (summary && summary.lines && summary.lines[0]) ? (". " + summary.lines[0]) : "";
+    announce(title + first);
   }
 
   var statCells = {};
@@ -232,6 +295,7 @@
     var a = map[e.key];
     if (!a) { return; }
     e.preventDefault();
+    if (window.ArcadeSFX) { window.ArcadeSFX.resume(); }
     dispatch(a);
   }
 
@@ -282,6 +346,7 @@
       var repeatable = !!REPEATABLE[name];
       b.addEventListener("pointerdown", function (e) {
         e.preventDefault();
+        if (window.ArcadeSFX) { window.ArcadeSFX.resume(); }
         dispatch(name);
         if (repeatable) {
           timer = setInterval(function () { dispatch(name); }, 90);
@@ -295,6 +360,30 @@
       b.addEventListener("pointercancel", release);
       els.pad.appendChild(b);
     });
+  }
+
+  // --- announce ----------------------------------------------------------
+  // A short spoken cue for select / start / end. A host (maestro / cue-vox) can
+  // take over by defining window.ArcadeAnnounce or listening for the postMessage;
+  // standalone falls back to the browser's speech synth.
+  function announce(text) {
+    if (!text) { return; }
+    var msg = { type: "arcade:announce", text: text };
+    try { if (window.opener) { window.opener.postMessage(msg, "*"); } } catch (e) {}
+    try { if (window.parent && window.parent !== window) { window.parent.postMessage(msg, "*"); } } catch (e) {}
+    if (typeof window.ArcadeAnnounce === "function") {
+      try { window.ArcadeAnnounce(text); return; } catch (e) {}
+    }
+    speak(text);
+  }
+  function speak(text) {
+    if (!("speechSynthesis" in window)) { return; }
+    try {
+      var u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0; u.pitch = 1.0; u.volume = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    } catch (e) {}
   }
 
   // --- helpers -----------------------------------------------------------

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>Arcade</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><text x=%221%22 y=%2214%22 font-size=%2214%22>&#127918;</text></svg>">
+  <link rel="stylesheet" href="https://nickcottrell.github.io/haberdash/haberdash.css">
+  <link rel="stylesheet" href="css/arcade.css?v=8">
+  <style id="vrgb-tokens"></style>
+  <script src="js/spectra-theme-loader.js?v=5"></script>
+</head>
+<body>
+  <main class="arcade">
+
+    <!-- Cabinet (one game, its own window) -->
+    <section id="cabinet" class="cabinet">
+      <div class="cabinet-bar">
+        <button id="back-btn" class="back-btn" type="button" aria-label="Close">&lsaquo; Menu</button>
+        <span id="cabinet-title" class="cabinet-bar__title"></span>
+        <span class="cabinet-bar__score"><span class="label">Score</span><span id="score-value">0</span></span>
+      </div>
+      <div id="surface" class="surface"></div>
+      <div id="stat-row" class="stat-row"></div>
+      <div id="control-pad" class="control-pad"></div>
+    </section>
+
+  </main>
+  <!-- chess.js 0.10.3 vendored (top-level `var Chess` -> global) -- the legality
+       referee for the Chess port. Vendored so there's no CDN/ESM ambiguity. -->
+  <script src="js/vendor/chess.js"></script>
+  <script src="js/sfx.js?v=1"></script>
+  <script src="js/shell.js?v=7"></script>
+</body>
+</html>

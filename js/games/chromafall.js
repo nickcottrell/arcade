@@ -47,7 +47,7 @@
     controls: ["left", "right", "rotate", "soft", "drop"],
     keymap: {
       ArrowLeft: "left", ArrowRight: "right", ArrowUp: "rotate",
-      ArrowDown: "soft", " ": "drop", Spacebar: "drop"
+      ArrowDown: "soft", " ": "rotate", Spacebar: "rotate"
     },
     create: function (host) { return new Chromafall(host); }
   });

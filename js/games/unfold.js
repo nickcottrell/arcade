@@ -324,12 +324,14 @@
     if (this.depth <= 1) { return; }
     if (this._cellAt(this.px, this.py, this.pz) !== SEAM) {
       this.flash = { hue: 0, ttl: 90 };   // denied blip
+      if (this.host.sfx) { this.host.sfx.play("blip"); }
       return;
     }
     var nz = (this.pz + 1) % this.depth;
     if (this._isWall(this.px, this.py, nz)) { return; }
     this.pz = nz;
     this.flash = { hue: 190, ttl: 160 };   // cyan cross cue, distinct from denied
+    if (this.host.sfx) { this.host.sfx.play("shell"); }
     this._pickupJewel();
     this._checkExit();
     this._checkEnemyCollision();
@@ -446,6 +448,7 @@
     this.py = this.H - 2;
     this.pvy = 0;
     this.flash = { hue: 0, ttl: 260 };  // red hit flash
+    if (this.host.sfx) { this.host.sfx.play("hurt"); }
     this._sync();
     if (this.lives <= 0) { this.over = true; }
   };
@@ -496,6 +499,7 @@
     if (this.onGround) {
       this.pvy = -3;         // jump reaches ~3 cells up
       this.onGround = false;
+      if (this.host.sfx) { this.host.sfx.play("jump"); }
     }
   };
 
@@ -514,6 +518,7 @@
         this.enemies.splice(i, 1);
         this.pvy = -2;       // bounce
         this.flash = { hue: en.hue, ttl: 180 };
+        if (this.host.sfx) { this.host.sfx.play("stomp"); }
         this._sync();
         return;
       }
