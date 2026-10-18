@@ -27,19 +27,29 @@
 (function () {
   "use strict";
 
-  // Dimension tables, ported from the ROM.
-  var DIM_W = [12, 16, 24, 32, 40];
-  var DIM_H = [7, 10, 14, 18, 22];
-  var DIM_HUE = [0, 30, 60, 120, 210];
-  var DIM_JEWELS = [6, 6, 10, 16, 24];
-  var DIM_PLATS = [0, 3, 5, 8, 12];
-  var DIM_ENEMIES = [0, 0, 2, 4, 6];
+  // The dimension ladder: each stage adds one axis, so the progression IS the
+  // dimensionality. 1D line (walk), 2D plane (jump + fall), 3D depth (shell).
+  // KIND drives generation; LABEL/AXIS drive the banner that names each unfold.
+  var DIM_KIND    = ["line", "plane", "plane", "depth", "depth"];
+  var DIM_LABEL   = ["1D", "2D", "2D", "3D", "3D"];
+  var DIM_AXIS    = [
+    "a line. walk it.",
+    "gained UP. jump and fall.",
+    "the plane. platforms and foes.",
+    "gained DEPTH. shell at a seam.",
+    "deeper still. wrap and shells."
+  ];
+  var DIM_W       = [14, 18, 24, 22, 30];
+  var DIM_H       = [3, 12, 14, 16, 20];
+  var DIM_HUE     = [0, 35, 80, 150, 220];
+  var DIM_JEWELS  = [4, 6, 10, 10, 16];
+  var DIM_PLATS   = [0, 3, 5, 4, 7];    // per plane in depth stages
+  var DIM_ENEMIES = [0, 0, 2, 2, 4];
   var DIM_GRAVITY = [0, 1, 1, 1, 1];
-  var DIM_WRAP = [0, 0, 0, 1, 1];
-  // DEPTH is the third axis -- how many parallel planes the dim stacks. 1 is a
-  // flat platformer; >1 unfolds depth, and crossing between planes is the SHELL
-  // move (the only irreducibly-3D move, done at a discrete seam, never slid).
-  var DIM_DEPTH = [2, 1, 1, 1, 1];
+  var DIM_WRAP    = [0, 0, 0, 0, 1];
+  // DEPTH is the third axis -- parallel planes the dim stacks. 1 is a flat
+  // platformer; >1 unfolds depth, crossed only via the SHELL move at a seam.
+  var DIM_DEPTH   = [1, 1, 1, 2, 2];
   var DIM_MAX = 5;
 
   // Cell codes: 0 empty, 1 wall, 2 plat-hot, 3 plat-warm, 4 plat-cold,
@@ -103,6 +113,7 @@
 
     // Feedback flash: { hue, ttl }
     this.flash = null;
+    this.banner = null;      // { text, ttl } dimension-unfold banner
     this.tick = 0;           // animation tick for jewel/exit pulse
 
     // Dissolve animation.
@@ -112,6 +123,7 @@
     this.dissolveAcc = 0;
 
     this._generate();
+    this._setBanner();
   }
 
   // --- Level generation (ported from generate_level) ---------------------
@@ -124,6 +136,7 @@
     this.gravity = DIM_GRAVITY[d];
     this.wrap = DIM_WRAP[d];
     this.depth = DIM_DEPTH[d] || 1;
+    this.kind = DIM_KIND[d];
     this.pz = 0;
 
     this.cells = new Array(W * H * this.depth).fill(EMPTY);
@@ -139,135 +152,132 @@
       }
     }
 
-    // Depth dims (>1 plane) are the shell stage: hand-authored so a back-plane
-    // jewel forces a shell-shift. Flat dims fall through to the ROM generator.
-    if (this.depth > 1) { this._generateShellStage(); return; }
-
-    // Platforms (only in gravity dimensions with a target count).
-    this.plats = [];   // { x, y, len, heat }
-    var innerW = W - 2, innerH = H - 2;
-    var platTarget = DIM_PLATS[d];
-    if (this.gravity && platTarget > 0) {
-      for (var p = 0; p < platTarget; p++) {
-        var py = 2 + Math.floor((innerH - 2) * p / platTarget);
-        if (py >= H - 2) { py = H - 3; }
-        var plen = 3 + this._rand(Math.floor(innerW / 3) + 1);
-        if (plen > innerW - 2) { plen = innerW - 2; }
-        if (plen < 1) { plen = 1; }
-        var maxStart = innerW - plen;
-        if (maxStart < 1) { maxStart = 1; }
-        var px = 1 + this._rand(maxStart);
-        this.plats.push({ x: px, y: py, len: plen, heat: 3 });
-        for (var pi = 0; pi < plen; pi++) {
-          this.cells[py * W + (px + pi)] = 2; // hot
-        }
-      }
-    }
-
-    // Jewels: must be reachable (above a solid surface, within jump reach of a
-    // floor in gravity dims; anywhere open in flat dims).
-    this.jewelsTotal = DIM_JEWELS[d];
-    var placed = 0, attempts = 0;
-    while (placed < this.jewelsTotal && attempts < 400) {
-      attempts++;
-      var jx = 1 + this._rand(W - 2);
-      var jy = 1 + this._rand(H - 2);
-      var idx = jy * W + jx;
-      if (this.cells[idx] !== EMPTY) { continue; }
-      if (!this.gravity) {
-        this.cells[idx] = JEWEL; placed++;
-      } else {
-        if (jy + 1 < H && this._solid(jx, jy + 1) && jy >= H - 5) {
-          this.cells[idx] = JEWEL; placed++;
-        }
-      }
-    }
-    this.jewelsTotal = placed;
-    this.jewelsLeft = placed;
-
-    // Enemies.
+    this.plats = [];    // { x, y, len, heat, z }
     this.enemies = [];  // { x, y, dir, hue }
-    var enemyTarget = DIM_ENEMIES[d];
-    for (var e = 0; e < enemyTarget; e++) {
-      for (var a = 0; a < 60; a++) {
-        var ex = 2 + this._rand(W - 4);
-        var ey = 1 + this._rand(H - 2);
-        if (this.cells[ey * W + ex] !== EMPTY) { continue; }
-        if (!this.gravity || (ey + 1 < H && this._solid(ex, ey + 1))) {
-          this.enemies.push({
-            x: ex, y: ey,
-            dir: this._rand(2) === 0 ? -1 : 1,
-            hue: (this.hue + 180) % 360
-          });
-          break;
+
+    if (this.kind === "line") {
+      // 1D: a single playable row. Walk left/right and gather. The bare rung.
+      this._fillLine();
+    } else {
+      var innerW = W - 2, innerH = H - 2;
+      var platTarget = DIM_PLATS[d];
+
+      // Platforms, placed per plane -- a depth stage stacks a board behind.
+      if (this.gravity && platTarget > 0) {
+        for (var pz = 0; pz < this.depth; pz++) {
+          for (var p = 0; p < platTarget; p++) {
+            var py = 2 + Math.floor((innerH - 2) * p / platTarget);
+            if (py >= H - 2) { py = H - 3; }
+            var plen = 3 + this._rand(Math.floor(innerW / 3) + 1);
+            if (plen > innerW - 2) { plen = innerW - 2; }
+            if (plen < 1) { plen = 1; }
+            var maxStart = innerW - plen;
+            if (maxStart < 1) { maxStart = 1; }
+            var px = 1 + this._rand(maxStart);
+            this.plats.push({ x: px, y: py, len: plen, heat: 3, z: pz });
+            for (var pi = 0; pi < plen; pi++) {
+              this.cells[this._idx(px + pi, py, pz)] = 2; // hot
+            }
+          }
         }
       }
-    }
 
-    // Player start.
-    this.px = Math.floor(W / 2);
-    if (this.gravity) {
-      this.py = H - 2;
-      while (this.py > 1) {
-        if (this._solid(this.px, this.py + 1)) { break; }
-        this.py--;
+      // Seams on the floor link the planes (depth stages). You shell here.
+      if (this.depth > 1) {
+        var sxs = [3, W - 4];
+        for (var si = 0; si < sxs.length; si++) {
+          for (var sz = 0; sz < this.depth; sz++) {
+            var sidx = this._idx(sxs[si], H - 2, sz);
+            if (this.cells[sidx] === EMPTY) { this.cells[sidx] = SEAM; }
+          }
+        }
       }
-    } else {
-      this.py = Math.floor(H / 2);
-    }
-    this.pvy = 0;
-    this.onGround = true;
 
-    // Exit.
+      // Jewels: a share on each plane, so depth forces a crossing.
+      var perPlane = Math.max(1, Math.round(DIM_JEWELS[d] / this.depth));
+      var totalPlaced = 0;
+      for (var jz = 0; jz < this.depth; jz++) {
+        var placed = 0, attempts = 0;
+        while (placed < perPlane && attempts < 400) {
+          attempts++;
+          var jx = 1 + this._rand(W - 2);
+          var jy = 1 + this._rand(H - 2);
+          var jidx = this._idx(jx, jy, jz);
+          if (this.cells[jidx] !== EMPTY) { continue; }
+          if (!this.gravity) {
+            this.cells[jidx] = JEWEL; placed++;
+          } else if (jy + 1 < H && this._solid(jx, jy + 1, jz) && jy >= H - 5) {
+            this.cells[jidx] = JEWEL; placed++;
+          }
+        }
+        totalPlaced += placed;
+      }
+      this.jewelsTotal = totalPlaced;
+      this.jewelsLeft = totalPlaced;
+
+      // Enemies patrol the front plane.
+      var enemyTarget = DIM_ENEMIES[d];
+      for (var e = 0; e < enemyTarget; e++) {
+        for (var a = 0; a < 60; a++) {
+          var ex = 2 + this._rand(W - 4);
+          var ey = 1 + this._rand(H - 2);
+          if (this.cells[this._idx(ex, ey, 0)] !== EMPTY) { continue; }
+          if (!this.gravity || (ey + 1 < H && this._solid(ex, ey + 1, 0))) {
+            this.enemies.push({
+              x: ex, y: ey,
+              dir: this._rand(2) === 0 ? -1 : 1,
+              hue: (this.hue + 180) % 360
+            });
+            break;
+          }
+        }
+      }
+
+      // Player starts on the front-plane floor.
+      this.px = Math.floor(W / 2);
+      if (this.gravity) {
+        this.py = H - 2;
+        while (this.py > 1) {
+          if (this._solid(this.px, this.py + 1, 0)) { break; }
+          this.py--;
+        }
+      } else {
+        this.py = Math.floor(H / 2);
+      }
+      this.pvy = 0;
+      this.onGround = true;
+    }
+
+    // Exit (opens once the haul is in).
     this.exitOpen = false;
     this.exitX = 0; this.exitY = 0; this.exitZ = 0;
-
     this.sized = false;   // force a refit for the new box size
   };
 
-  // A hand-authored 2-plane flat stage: the shell proof. Front plane (z0) holds
-  // the easy haul; back plane (z1) hides jewels reachable only by shelling at a
-  // seam. Seams sit at the same (x,y) on every plane so the cross is legal both
-  // ways. No gravity -- free roam -- so the shell move reads on its own.
-  Unfold.prototype._generateShellStage = function () {
-    var W = this.W, H = this.H;
-    this.plats = [];
-    this.enemies = [];
-
-    // Seams: one near each end, same (x,y) across planes (a barbell).
-    var seams = [[4, 3], [W - 5, H - 3]];
-    for (var s = 0; s < seams.length; s++) {
-      for (var z = 0; z < this.depth; z++) {
-        this.cells[this._idx(seams[s][0], seams[s][1], z)] = SEAM;
-      }
-    }
-
-    // Jewels. Front: the easy four. Back: two that force a shell-shift.
-    var front = [[2, 2], [W - 3, 2], [2, H - 2], [W - 3, H - 2]];
-    var back = [[Math.floor(W / 2), 2], [Math.floor(W / 2), H - 2]];
-    var placed = 0, i;
-    for (i = 0; i < front.length; i++) {
-      var fi = this._idx(front[i][0], front[i][1], 0);
-      if (this.cells[fi] === EMPTY) { this.cells[fi] = JEWEL; placed++; }
-    }
-    for (i = 0; i < back.length; i++) {
-      var bi = this._idx(back[i][0], back[i][1], 1);
-      if (this.cells[bi] === EMPTY) { this.cells[bi] = JEWEL; placed++; }
+  // 1D stage: one playable row, no gravity, walk and gather.
+  Unfold.prototype._fillLine = function () {
+    var W = this.W, y = 1;
+    var target = DIM_JEWELS[this.dim], placed = 0, attempts = 0;
+    while (placed < target && attempts < 200) {
+      attempts++;
+      var jx = 2 + this._rand(W - 4);
+      var idx = this._idx(jx, y, 0);
+      if (this.cells[idx] !== EMPTY) { continue; }
+      this.cells[idx] = JEWEL; placed++;
     }
     this.jewelsTotal = placed;
     this.jewelsLeft = placed;
-
-    // Player starts front-plane center, clear of seams/jewels.
     this.px = Math.floor(W / 2);
-    this.py = Math.floor(H / 2);
+    this.py = y;
     this.pz = 0;
-    if (this._cellAt(this.px, this.py, 0) !== EMPTY) { this.px += 1; }
     this.pvy = 0;
     this.onGround = true;
+  };
 
-    this.exitOpen = false;
-    this.exitX = 0; this.exitY = 0; this.exitZ = 0;
-    this.sized = false;
+  // Name the dimension just entered, and the axis it unfolded. Shown briefly.
+  Unfold.prototype._setBanner = function () {
+    var d = this.dim; if (d >= DIM_MAX) { d = DIM_MAX - 1; }
+    this.banner = { text: DIM_LABEL[d] + "   " + DIM_AXIS[d], ttl: 2600 };
   };
 
   Unfold.prototype._rand = function (n) {
@@ -551,18 +561,18 @@
 
   // --- Platform decay (ported from decay_platforms) ----------------------
   Unfold.prototype._decayPlatforms = function () {
-    var W = this.W;
     for (var p = 0; p < this.plats.length; p++) {
       var pl = this.plats[p];
       if (pl.heat <= 0) { continue; }
       pl.heat--;
       for (var pi = 0; pi < pl.len; pi++) {
-        var cx = pl.x + pi, cy = pl.y;
-        // Preserve a jewel/exit sitting on the platform surface (rare).
-        var cur = this.cells[cy * W + cx];
-        if (cur === JEWEL || cur === EXIT) { continue; }
-        if (pl.heat === 0) { this.cells[cy * W + cx] = EMPTY; }
-        else { this.cells[cy * W + cx] = (5 - pl.heat); } // 2->3->4 cooling
+        var cx = pl.x + pi, cy = pl.y, pz = pl.z || 0;
+        var idx = this._idx(cx, cy, pz);
+        // Preserve a jewel/exit/seam sitting on the platform surface (rare).
+        var cur = this.cells[idx];
+        if (cur === JEWEL || cur === EXIT || cur === SEAM) { continue; }
+        if (pl.heat === 0) { this.cells[idx] = EMPTY; }
+        else { this.cells[idx] = (5 - pl.heat); } // 2->3->4 cooling
       }
     }
   };
@@ -576,13 +586,14 @@
       this.level++;
       this.dim++;
       this._generate();
+      this._setBanner();
       this._sync();
     }
   };
 
   Unfold.prototype._sync = function () {
     this.host.setScore(this.score);
-    this.host.setStat("Dim", (this.dim + 1) + " / " + DIM_MAX);
+    this.host.setStat("Dim", DIM_LABEL[Math.min(this.dim, DIM_MAX - 1)] + " (" + (this.dim + 1) + "/" + DIM_MAX + ")");
     this.host.setStat("Jewels", (this.jewelsTotal - this.jewelsLeft) + " / " + this.jewelsTotal);
     this.host.setStat("Chain", this.chain);
     this.host.setStat("Lives", this.lives);
@@ -633,6 +644,7 @@
     this.tick += dt / STEP_MS;
 
     if (this.flash) { this.flash.ttl -= dt; if (this.flash.ttl <= 0) { this.flash = null; } }
+    if (this.banner) { this.banner.ttl -= dt; if (this.banner.ttl <= 0) { this.banner = null; } }
 
     if (this.over) { return; }
 
@@ -796,6 +808,25 @@
       ctx.globalAlpha = alpha * 0.4;
       ctx.fillStyle = hsl(this.flash.hue, 85, 55);
       ctx.fillRect(0, 0, W * c, H * c);
+      ctx.globalAlpha = 1;
+    }
+
+    // Dimension banner: names the dimension entered and the axis it unfolded.
+    if (this.banner) {
+      var ba = Math.min(1, this.banner.ttl / 500);
+      var bh = Math.max(16, Math.floor(c * 1.1));
+      var by = Math.floor(H * c * 0.16);
+      ctx.globalAlpha = Math.min(0.82, ba);
+      ctx.fillStyle = "#06060e";
+      ctx.fillRect(0, by - bh / 2, W * c, bh);
+      ctx.globalAlpha = Math.min(1, ba);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold " + Math.max(9, Math.floor(c * 0.6)) + "px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(this.banner.text, W * c / 2, by);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
       ctx.globalAlpha = 1;
     }
   };
