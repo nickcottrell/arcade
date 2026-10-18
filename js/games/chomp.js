@@ -1,20 +1,20 @@
 /*
  * CHAIN CHOMP -- browser port of roms/chain-chomp.sh
  *
- * Pac-Man meets provenance chains. Faithful to the ROM:
- *   - The same 21x11 maze template (# wall, . dot, o power pellet).
- *   - Thermal dot decay: dots have heat hot(3) -> warm(2) -> cold(1) -> gone(0)
- *     and cool on a timer; hotter dots are worth more, so you naturally eat the
+ * A dino grazing a provenance chain. Faithful to the ROM:
+ *   - The same 21x11 maze template (# wall, . fern, o roar pellet).
+ *   - Thermal fern decay: ferns have heat hot(3) -> warm(2) -> cold(1) -> gone(0)
+ *     and cool on a timer; hotter ferns are worth more, so you naturally graze the
  *     hottest first. Rendered by color/brightness.
- *   - Provenance CHAIN: consecutive eats build a multiplier (1 + chain/5). A
- *     ghost hit BREAKS the chain, costs a life, and can end the game.
- *   - Ghosts chase (greedy pursuit, prefer larger-distance axis, 30% jitter),
- *     flip and flee while a power pellet is active, and speed up per level.
+ *   - Provenance CHAIN: consecutive grazes build a multiplier (1 + chain/5). A
+ *     raptor hit BREAKS the chain, costs a life, and can end the game.
+ *   - Raptors chase (greedy pursuit, prefer larger-distance axis, 30% jitter),
+ *     flip and flee while a roar pellet is active, and speed up per level.
  *
- * The ROM writes cue-mem tokens (chain heat, ghost_kill, chain_break) as a side
+ * The ROM writes cue-mem tokens (chain heat, raptor_kill, chain_break) as a side
  * effect on the token pool. The public arcade has no substrate to write to, so
  * that provenance identity is kept as FEEL -- the on-screen Chain multiplier,
- * the ghost-eat flash, and the chain-break shudder -- not as a pool mutation.
+ * the raptor-eat flash, and the chain-break shudder -- not as a pool mutation.
  */
 (function () {
   "use strict";
@@ -38,10 +38,10 @@
 
   var START_PX = 10;
   var START_PY = 7;
-  var GHOST_STARTS = [[5, 5], [15, 5]];
-  var NUM_GHOSTS = 2;
+  var RAPTOR_STARTS = [[5, 5], [15, 5]];
+  var NUM_RAPTORS = 2;
 
-  // Token codes on a cell: 0 none, 1 cold, 2 warm, 3 hot, 9 power pellet.
+  // Token codes on a cell: 0 none, 1 cold, 2 warm, 3 hot, 9 roar pellet.
   // Base values track the ROM (10/20/30/50).
   function baseValue(t) {
     if (t === 1) { return 10; }
@@ -71,9 +71,9 @@
     this.tokensLeft = 0;
 
     this.px = START_PX; this.py = START_PY;
-    this.pdir = "left";           // facing, for the chomp mouth
-    this.gx = []; this.gy = [];
-    this.scared = 0;              // ticks of power mode remaining
+    this.pdir = "left";           // facing, for the dino head
+    this.rx = []; this.ry = [];
+    this.scared = 0;              // ticks of roar mode remaining
 
     this.score = 0;
     this.chain = 0;
@@ -83,7 +83,7 @@
     this.tick = 0;
     this.over = false;
 
-    this.flash = null;            // { color, ttl } eat/ghost-kill wash
+    this.flash = null;            // { color, ttl } graze/raptor-kill wash
     this.shudder = 0;             // ms of chain-break shudder remaining
 
     this.cell = 20;               // px per cell, set in resize()
@@ -111,10 +111,10 @@
       }
     }
     this.px = START_PX; this.py = START_PY;
-    this.gx = []; this.gy = [];
-    for (var i = 0; i < NUM_GHOSTS; i++) {
-      this.gx[i] = GHOST_STARTS[i][0];
-      this.gy[i] = GHOST_STARTS[i][1];
+    this.rx = []; this.ry = [];
+    for (var i = 0; i < NUM_RAPTORS; i++) {
+      this.rx[i] = RAPTOR_STARTS[i][0];
+      this.ry[i] = RAPTOR_STARTS[i][1];
     }
     this.scared = 0;
     this.tick = 0;
@@ -161,7 +161,7 @@
     this.token[idx] = 0;
     this.tokensLeft--;
 
-    // Provenance-as-feel: brief wash tinted by the dot's heat.
+    // Provenance-as-feel: brief wash tinted by the fern's heat.
     var color = t === 9 ? "#c77dff"
       : t === 3 ? "#ff4d4d"
         : t === 2 ? "#ffd24d"
@@ -180,19 +180,19 @@
   };
 
   Chomp.prototype._checkCollision = function () {
-    for (var i = 0; i < NUM_GHOSTS; i++) {
-      if (this.gx[i] === this.px && this.gy[i] === this.py) {
-        this._resolveGhost(i);
+    for (var i = 0; i < NUM_RAPTORS; i++) {
+      if (this.rx[i] === this.px && this.ry[i] === this.py) {
+        this._resolveRaptor(i);
         if (this.over) { return; }
       }
     }
   };
 
-  // Shared ghost/player overlap resolution (ROM has this in two places).
-  Chomp.prototype._resolveGhost = function (i) {
+  // Shared raptor/player overlap resolution (ROM has this in two places).
+  Chomp.prototype._resolveRaptor = function (i) {
     if (this.scared > 0) {
       this.score += 200 * this.level;
-      this.gx[i] = 10; this.gy[i] = 5;
+      this.rx[i] = 10; this.ry[i] = 5;
       this.flash = { color: "#66ffcc", ttl: 180 };
     } else {
       this.chain = 0;
@@ -204,14 +204,14 @@
     }
   };
 
-  // --- Ghost AI (greedy pursuit, ROM-faithful) ---------------------------
-  Chomp.prototype._moveGhosts = function () {
-    for (var i = 0; i < NUM_GHOSTS; i++) {
-      var gx = this.gx[i], gy = this.gy[i];
+  // --- Raptor AI (greedy pursuit, ROM-faithful) --------------------------
+  Chomp.prototype._moveRaptors = function () {
+    for (var i = 0; i < NUM_RAPTORS; i++) {
+      var rx = this.rx[i], ry = this.ry[i];
 
       var dx = 0, dy = 0;
-      if (this.px > gx) { dx = 1; } else if (this.px < gx) { dx = -1; }
-      if (this.py > gy) { dy = 1; } else if (this.py < gy) { dy = -1; }
+      if (this.px > rx) { dx = 1; } else if (this.px < rx) { dx = -1; }
+      if (this.py > ry) { dy = 1; } else if (this.py < ry) { dy = -1; }
 
       // Flee when scared.
       if (this.scared > 0) { dx = -dx; dy = -dy; }
@@ -230,11 +230,11 @@
       var ady = dy < 0 ? -dy : dy;
 
       if (adx >= ady) {
-        if (dx !== 0 && this._canMove(gx + dx, gy)) { this.gx[i] = gx + dx; moved = true; }
-        else if (dy !== 0 && this._canMove(gx, gy + dy)) { this.gy[i] = gy + dy; moved = true; }
+        if (dx !== 0 && this._canMove(rx + dx, ry)) { this.rx[i] = rx + dx; moved = true; }
+        else if (dy !== 0 && this._canMove(rx, ry + dy)) { this.ry[i] = ry + dy; moved = true; }
       } else {
-        if (dy !== 0 && this._canMove(gx, gy + dy)) { this.gy[i] = gy + dy; moved = true; }
-        else if (dx !== 0 && this._canMove(gx + dx, gy)) { this.gx[i] = gx + dx; moved = true; }
+        if (dy !== 0 && this._canMove(rx, ry + dy)) { this.ry[i] = ry + dy; moved = true; }
+        else if (dx !== 0 && this._canMove(rx + dx, ry)) { this.rx[i] = rx + dx; moved = true; }
       }
 
       // If stuck, try any open direction.
@@ -244,16 +244,16 @@
         for (var d = 0; d < 4; d++) {
           var pick = (start + d) % 4;
           var tdx = dirs[pick][0], tdy = dirs[pick][1];
-          if (this._canMove(gx + tdx, gy + tdy)) {
-            this.gx[i] = gx + tdx; this.gy[i] = gy + tdy;
+          if (this._canMove(rx + tdx, ry + tdy)) {
+            this.rx[i] = rx + tdx; this.ry[i] = ry + tdy;
             break;
           }
         }
       }
 
-      // Collision after the ghost moved.
-      if (this.gx[i] === this.px && this.gy[i] === this.py) {
-        this._resolveGhost(i);
+      // Collision after the raptor moved.
+      if (this.rx[i] === this.px && this.ry[i] === this.py) {
+        this._resolveRaptor(i);
         if (this.over) { return; }
       }
     }
@@ -283,7 +283,7 @@
   Chomp.prototype.start = function () {
     this._sync();
     var self = this;
-    // ROM frame is ~0.15s; ghosts move every ghost_rate ticks, dots decay every
+    // ROM frame is ~0.15s; raptors move every raptor_rate ticks, ferns decay every
     // decay_rate ticks. Keep that cadence but a touch snappier for touch play.
     var TICK_MS = 150;
     this.lastT = performance.now();
@@ -325,18 +325,18 @@
     this.raf = requestAnimationFrame(loop);
   };
 
-  // One game tick: ghost cadence + decay cadence, level-scaled like the ROM.
+  // One game tick: raptor cadence + decay cadence, level-scaled like the ROM.
   Chomp.prototype._step = function () {
     if (this.over) { return; }
     this.tick++;
 
-    // Ghost speed: faster at higher levels, slower while scared.
-    var ghostRate = 4 - Math.floor(this.level / 3);
-    if (ghostRate < 2) { ghostRate = 2; }
-    if (this.scared > 0) { ghostRate += 2; }
-    if (this.tick % ghostRate === 0) { this._moveGhosts(); }
+    // Raptor speed: faster at higher levels, slower while scared.
+    var raptorRate = 4 - Math.floor(this.level / 3);
+    if (raptorRate < 2) { raptorRate = 2; }
+    if (this.scared > 0) { raptorRate += 2; }
+    if (this.tick % raptorRate === 0) { this._moveRaptors(); }
 
-    // Dot decay: faster at higher levels.
+    // Fern decay: faster at higher levels.
     var decayRate = 60 - this.level * 5;
     if (decayRate < 20) { decayRate = 20; }
     if (this.tick % decayRate === 0) { this._decay(); }
@@ -397,19 +397,19 @@
         }
         var t = this.token[idx];
         if (t === 0) { continue; }
-        this._dot(x, y, t);
+        this._fern(x, y, t);
       }
     }
 
-    // Ghosts.
-    for (var i = 0; i < NUM_GHOSTS; i++) {
-      this._ghost(this.gx[i], this.gy[i]);
+    // Raptors.
+    for (var i = 0; i < NUM_RAPTORS; i++) {
+      this._raptor(this.rx[i], this.ry[i]);
     }
 
     // Player.
     this._player();
 
-    // Flash wash (eat / ghost-kill / chain-break).
+    // Flash wash (graze / raptor-kill / chain-break).
     if (this.flash) {
       var alpha = Math.max(0, this.flash.ttl / 220) * 0.35;
       ctx.globalAlpha = alpha;
@@ -421,11 +421,11 @@
     ctx.restore();
   };
 
-  Chomp.prototype._dot = function (x, y, t) {
+  Chomp.prototype._fern = function (x, y, t) {
     var ctx = this.ctx, c = this.cell;
     var cx = x * c + c / 2, cy = y * c + c / 2;
     if (t === 9) {
-      // Power pellet: pulsing bright orb.
+      // Roar pellet: pulsing bright orb.
       var pulse = (this.tick % 4) < 2 ? 1 : 0.6;
       ctx.globalAlpha = pulse;
       ctx.fillStyle = "#e9c3ff";
@@ -435,64 +435,186 @@
       ctx.globalAlpha = 1;
       return;
     }
-    // Thermal dots: hot=red-bright, warm=amber, cold=dim grey.
+    // Thermal ferns: hot=bright, warm=amber, cold=dim. A tiny sprig, not a dot.
     var color, r;
-    if (t === 3) { color = "#ff4d4d"; r = c * 0.20; }
-    else if (t === 2) { color = "#ffcc33"; r = c * 0.16; }
-    else { color = "#667080"; r = c * 0.12; }
-    ctx.fillStyle = color;
+    if (t === 3) { color = "#49e06b"; r = c * 0.22; }
+    else if (t === 2) { color = "#a7d24d"; r = c * 0.18; }
+    else { color = "#5a6b55"; r = c * 0.14; }
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, c * 0.06);
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(cx, cy, Math.max(1.5, r), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(cx, cy + r);
+    ctx.lineTo(cx, cy - r);           // stem
+    ctx.moveTo(cx, cy - r * 0.2);
+    ctx.lineTo(cx - r * 0.8, cy - r * 0.7);  // left frond
+    ctx.moveTo(cx, cy - r * 0.2);
+    ctx.lineTo(cx + r * 0.8, cy - r * 0.7);  // right frond
+    ctx.stroke();
   };
 
   Chomp.prototype._player = function () {
-    var ctx = this.ctx, c = this.cell;
-    var cx = this.px * c + c / 2, cy = this.py * c + c / 2;
-    var rad = c * 0.42;
-    // Mouth animates open/closed and faces the travel direction.
-    var open = (this.tick % 2 === 0) ? 0.28 : 0.05;
-    var facing = { right: 0, down: 0.5, left: 1, up: 1.5 }[this.pdir] || 0;
-    var a0 = (facing + open) * Math.PI;
-    var a1 = (facing + 2 - open) * Math.PI;
-    ctx.fillStyle = this.scared > 0 ? "#3ad1ff" : "#ffe14d";
+    var cx = this.px * this.cell + this.cell / 2;
+    var cy = this.py * this.cell + this.cell / 2;
+    var face = (this.pdir === "left") ? -1 : 1;   // up/down keep last horizontal
+    var chomp = (this.tick % 2 === 0);            // jaw opens on alternate ticks
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(face, 1);
+    this._dino(this.cell, this.scared > 0 ? "#3ad1ff" : "#57d957", chomp);
+    ctx.restore();
+  };
+
+  // A chunky green T-rex facing right, drawn centered on the origin.
+  Chomp.prototype._dino = function (s, color, chomp) {
+    var ctx = this.ctx;
+    ctx.fillStyle = color;
+
+    // Tail.
     ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, rad, a0, a1);
+    ctx.moveTo(-0.46 * s, -0.02 * s);
+    ctx.quadraticCurveTo(-0.28 * s, -0.12 * s, -0.10 * s, 0.00 * s);
+    ctx.quadraticCurveTo(-0.28 * s, 0.12 * s, -0.46 * s, 0.08 * s);
     ctx.closePath();
+    ctx.fill();
+
+    // Body.
+    ctx.beginPath();
+    ctx.ellipse(-0.04 * s, 0.05 * s, 0.28 * s, 0.24 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs.
+    ctx.fillRect(-0.14 * s, 0.20 * s, 0.11 * s, 0.22 * s);
+    ctx.fillRect(0.05 * s, 0.20 * s, 0.11 * s, 0.22 * s);
+
+    // Back spikes.
+    ctx.beginPath();
+    var sx = [-0.24, -0.09, 0.06];
+    for (var k = 0; k < sx.length; k++) {
+      var bx = sx[k] * s;
+      ctx.moveTo(bx, -0.16 * s);
+      ctx.lineTo(bx + 0.05 * s, -0.30 * s);
+      ctx.lineTo(bx + 0.10 * s, -0.16 * s);
+    }
+    ctx.fill();
+
+    // Neck + head.
+    ctx.beginPath();
+    ctx.ellipse(0.28 * s, -0.16 * s, 0.17 * s, 0.15 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0.04 * s, -0.08 * s);
+    ctx.lineTo(0.30 * s, -0.24 * s);
+    ctx.lineTo(0.32 * s, 0.02 * s);
+    ctx.lineTo(0.08 * s, 0.10 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // Upper snout.
+    ctx.beginPath();
+    ctx.moveTo(0.32 * s, -0.24 * s);
+    ctx.lineTo(0.49 * s, -0.20 * s);
+    ctx.lineTo(0.49 * s, -0.12 * s);
+    ctx.lineTo(0.34 * s, -0.10 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lower jaw (drops when chomping).
+    var jaw = chomp ? 0.11 * s : 0.0;
+    ctx.beginPath();
+    ctx.moveTo(0.32 * s, -0.05 * s);
+    ctx.lineTo(0.49 * s, -0.04 * s + jaw);
+    ctx.lineTo(0.41 * s, 0.03 * s + jaw);
+    ctx.lineTo(0.30 * s, 0.00 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye.
+    ctx.fillStyle = "#06240a";
+    ctx.beginPath();
+    ctx.arc(0.33 * s, -0.19 * s, 0.038 * s, 0, Math.PI * 2);
     ctx.fill();
   };
 
-  Chomp.prototype._ghost = function (gx, gy) {
+  // A lean red raptor, drawn centered on its cell, facing the player.
+  Chomp.prototype._raptor = function (rx, ry) {
     var ctx = this.ctx, c = this.cell;
-    var x = gx * c, y = gy * c;
-    var r = c * 0.4;
-    var cx = x + c / 2, cy = y + c / 2;
-    ctx.fillStyle = this.scared > 0 ? "#2a44cc" : "#ff3b3b";
-    // Dome.
+    var cx = rx * c + c / 2, cy = ry * c + c / 2;
+    var face = (this.px < rx) ? -1 : 1;
+    var body = this.scared > 0 ? "#2a44cc" : "#ff3b3b";
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(face, 1);
+    ctx.fillStyle = body;
+
+    // Tail (raised, sweeping up and back).
     ctx.beginPath();
-    ctx.arc(cx, cy - c * 0.05, r, Math.PI, 0);
-    // Skirt.
-    var by = cy + r * 0.9;
-    ctx.lineTo(cx + r, by);
-    var feet = 4;
-    for (var f = 0; f < feet; f++) {
-      var fx = cx + r - (2 * r) * ((f + 0.5) / feet);
-      ctx.lineTo(fx, by - (f % 2 === 0 ? r * 0.28 : 0));
-    }
-    ctx.lineTo(cx - r, by);
+    ctx.moveTo(-0.12 * c, 0.02 * c);
+    ctx.quadraticCurveTo(-0.44 * c, -0.08 * c, -0.46 * c, -0.30 * c);
+    ctx.quadraticCurveTo(-0.32 * c, -0.12 * c, -0.08 * c, 0.12 * c);
     ctx.closePath();
     ctx.fill();
-    // Eyes.
-    ctx.fillStyle = "#ffffff";
+
+    // Body (leaning forward).
     ctx.beginPath();
-    ctx.arc(cx - r * 0.35, cy - c * 0.08, r * 0.22, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.35, cy - c * 0.08, r * 0.22, 0, Math.PI * 2);
+    ctx.ellipse(-0.02 * c, 0.03 * c, 0.24 * c, 0.19 * c, -0.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = this.scared > 0 ? "#aaccff" : "#1a2b8a";
+
+    // Hind leg with raised sickle claw.
     ctx.beginPath();
-    ctx.arc(cx - r * 0.30, cy - c * 0.06, r * 0.10, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.40, cy - c * 0.06, r * 0.10, 0, Math.PI * 2);
+    ctx.moveTo(-0.10 * c, 0.06 * c);
+    ctx.lineTo(0.03 * c, 0.06 * c);
+    ctx.lineTo(0.07 * c, 0.30 * c);
+    ctx.lineTo(-0.01 * c, 0.42 * c);
+    ctx.lineTo(0.15 * c, 0.42 * c);
+    ctx.lineTo(0.04 * c, 0.26 * c);
+    ctx.closePath();
     ctx.fill();
+
+    // Neck + head (up and forward).
+    ctx.beginPath();
+    ctx.moveTo(0.10 * c, -0.04 * c);
+    ctx.lineTo(0.26 * c, -0.26 * c);
+    ctx.lineTo(0.37 * c, -0.23 * c);
+    ctx.lineTo(0.24 * c, 0.03 * c);
+    ctx.closePath();
+    ctx.fill();
+
+    // Snout (pointed upper jaw).
+    ctx.beginPath();
+    ctx.moveTo(0.31 * c, -0.26 * c);
+    ctx.lineTo(0.49 * c, -0.19 * c);
+    ctx.lineTo(0.34 * c, -0.13 * c);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lower jaw (open, gaping).
+    ctx.beginPath();
+    ctx.moveTo(0.31 * c, -0.11 * c);
+    ctx.lineTo(0.45 * c, -0.13 * c);
+    ctx.lineTo(0.33 * c, -0.03 * c);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tiny arm.
+    ctx.beginPath();
+    ctx.moveTo(0.13 * c, 0.02 * c);
+    ctx.lineTo(0.23 * c, 0.11 * c);
+    ctx.lineTo(0.16 * c, 0.12 * c);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye (yellow hunting, pale while fleeing) + pupil.
+    ctx.fillStyle = this.scared > 0 ? "#bcd3ff" : "#ffd23b";
+    ctx.beginPath();
+    ctx.arc(0.32 * c, -0.20 * c, 0.048 * c, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#200000";
+    ctx.beginPath();
+    ctx.arc(0.34 * c, -0.20 * c, 0.022 * c, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   };
 })();

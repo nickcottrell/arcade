@@ -25,8 +25,8 @@
     {
       "id": "chomp",
       "title": "Chain Chomp",
-      "icon": "🟡",
-      "blurb": "Pac-Man meets provenance chains. Eat the hottest dots first, build your chain multiplier, don't let a ghost break it.",
+      "icon": "🦖",
+      "blurb": "A dino grazing a provenance chain. Graze the hottest ferns first, build your chain multiplier, don't let a raptor break it.",
       "module": "js/games/chomp.js",
       "controls": ["up", "down", "left", "right"],
       "status": "live"
