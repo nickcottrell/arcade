@@ -1,7 +1,7 @@
 /*
  * CHROMAFALL -- browser port of roms/chromafall.sh
  *
- * Faithful to the ROM: 10x20 field, the same 7 tetrominoes with the same
+ * Faithful to the ROM: 10x20 field, the same 7 four-cell pieces with the same
  * pivot-relative rotation data, the same VRGB hue/sat/light per piece, the
  * same scoring curve and gravity ramp, the same wall-kick on rotate.
  *

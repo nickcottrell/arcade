@@ -8,7 +8,7 @@
       "id": "chromafall",
       "title": "Chromafall",
       "icon": "🧱",
-      "blurb": "Tetris in colorspace. Each tetromino carries a hue; cleared lines emit their dominant color.",
+      "blurb": "Falling color blocks. Each piece carries a hue; cleared lines emit their dominant color.",
       "module": "js/games/chromafall.js",
       "controls": ["left", "right", "rotate", "soft", "drop"],
       "status": "live"
@@ -35,7 +35,7 @@
       "id": "trail",
       "title": "Heat Trail",
       "icon": "🐍",
-      "blurb": "Snake meets thermal decay. Your body cools and sheds cold segments; eat to reheat and grow, or wither and die.",
+      "blurb": "A cooling trail you keep fed. Your body sheds cold segments; eat to reheat and grow, or wither and die.",
       "module": "js/games/trail.js",
       "controls": ["up", "down", "left", "right"],
       "status": "live"

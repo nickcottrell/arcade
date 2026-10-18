@@ -1,7 +1,7 @@
 /*
  * HEAT TRAIL -- browser port of roms/heat-trail.sh
  *
- * Snake meets thermal decay. The body IS the provenance chain: every segment
+ * A trail that cools as it travels. The body IS the provenance chain: every segment
  * carries heat that cools over time, and COLD tail segments shed off the end.
  * Eat food to add a hot segment and reheat; stop eating and the chain cools,
  * shrinks, and eventually breaks. Die on a wall, on yourself, or when the
@@ -44,7 +44,7 @@
     this.ctx = host.ctx;
     this.canvas = host.canvas;
 
-    // Snake body: parallel arrays, head = index 0.
+    // Trail body: parallel arrays, head = index 0.
     this.bx = [];
     this.by = [];
     this.heat = [];
@@ -111,7 +111,7 @@
     }
   };
 
-  // --- Tick: one step of snake movement + thermal bookkeeping -------------
+  // --- Tick: one step of trail movement + thermal bookkeeping -------------
   Trail.prototype._step = function () {
     this.dir = this.nextDir;
 
