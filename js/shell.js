@@ -259,7 +259,7 @@
 
   var LABELS = {
     left: "←", right: "→", up: "↑", down: "↓",
-    rotate: "↺", soft: "↓", drop: "⤓", jump: "⤒", action: "●"
+    rotate: "↺", soft: "↓", drop: "⤓", jump: "⤒", action: "●", shell: "◎"
   };
   // Which controls auto-repeat while the button is held down.
   var REPEATABLE = { left: 1, right: 1, down: 1, soft: 1, up: 1 };
