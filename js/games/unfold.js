@@ -50,9 +50,9 @@
 
   window.ArcadeShell.register("unfold", {
     title: "Unfold",
-    controls: ["left", "right", "jump"],
+    controls: ["left", "right", "down", "jump"],
     keymap: {
-      ArrowLeft: "left", ArrowRight: "right",
+      ArrowLeft: "left", ArrowRight: "right", ArrowDown: "down",
       ArrowUp: "jump", " ": "jump", Spacebar: "jump"
     },
     create: function (host) { return new Unfold(host); }
@@ -69,13 +69,15 @@
     this.cell = 20;          // px per grid cell, set in resize()
     this.lastT = 0;
     this.acc = 0;            // physics accumulator (ms)
-    this.walkAcc = 0;        // step-move cadence
+    this.walkAcc = 0;        // step-move cadence (horizontal)
+    this.walkAccV = 0;       // step-move cadence (vertical, flat dims)
     this.gravAcc = 0;
     this.enemyAcc = 0;
     this.decayAcc = 0;
 
-    // Per-frame movement intent (left/right auto-repeat while held).
+    // Per-frame movement intent (left/right/down auto-repeat while held).
     this.moveDir = 0;
+    this.moveDy = 0;
     this.wantJump = false;
 
     // Score / progression.
@@ -227,6 +229,7 @@
     if (this.over || this.dissolving) { return; }
     if (a === "left") { this.moveDir = -1; this._walkNow(); }
     else if (a === "right") { this.moveDir = 1; this._walkNow(); }
+    else if (a === "down") { this.moveDy = 1; this._stepDownNow(); }
     else if (a === "jump") { this.wantJump = true; }
   };
 
@@ -236,6 +239,17 @@
     if (this.walkAcc >= WALK_MS || this.walkAcc === 0) {
       this._stepMove(this.moveDir, 0);
       this.walkAcc = 0;
+    }
+  };
+
+  // Down: in flat (no-gravity) dims it steps the player down a cell, mirroring
+  // jump's step up. In gravity dims there is no "walk down" -- the _update loop
+  // turns a held down into a fast-fall instead.
+  Unfold.prototype._stepDownNow = function () {
+    if (this.gravity) { return; }
+    if (this.walkAccV >= WALK_MS || this.walkAccV === 0) {
+      this._stepMove(0, 1);
+      this.walkAccV = 0;
     }
   };
 
@@ -535,6 +549,23 @@
     }
     // moveDir is a one-frame intent; the shell re-dispatches while held.
     this.moveDir = 0;
+
+    // Held down: step a cell in flat dims; in gravity dims drop faster.
+    if (this.moveDy > 0) {
+      if (!this.gravity) {
+        this.walkAccV += dt;
+        while (this.walkAccV >= WALK_MS) {
+          this.walkAccV -= WALK_MS;
+          this._stepMove(0, 1);
+          if (this.over || this.dissolving) { break; }
+        }
+      } else if (!this.onGround) {
+        this.pvy = 3;  // terminal fall -- a held drop
+      }
+    } else {
+      this.walkAccV = WALK_MS;  // primed so next press fires instantly
+    }
+    this.moveDy = 0;
 
     // Jump (one press per fire).
     if (this.wantJump) {
