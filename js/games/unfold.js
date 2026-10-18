@@ -511,10 +511,25 @@
   };
 
   // --- Enemy AI (ported from move_enemies) -------------------------------
+  // Enemies fall when nothing solid is under them (platform decayed away). Runs
+  // on the gravity cadence so a dropping enemy reads as a fall, not a teleport.
+  Unfold.prototype._enemyGravity = function () {
+    if (!this.gravity) { return; }
+    for (var i = 0; i < this.enemies.length; i++) {
+      var en = this.enemies[i];
+      if (this._solid(en.x, en.y + 1)) { continue; }   // supported
+      en.y += 1;
+      if (en.y >= this.H - 1) { en.y = this.H - 2; }
+      if (en.x === this.px && en.y === this.py && this.pz === 0) { this._playerHit(); return; }
+    }
+  };
+
   Unfold.prototype._moveEnemies = function () {
     var W = this.W;
     for (var i = 0; i < this.enemies.length; i++) {
       var en = this.enemies[i];
+      // Airborne (platform gone): fall straight, do not patrol this tick.
+      if (this.gravity && !this._solid(en.x, en.y + 1)) { continue; }
       var nx = en.x + en.dir;
       var turn = false;
       if (nx < 1 || nx >= W - 1) { turn = true; }
@@ -680,6 +695,7 @@
       while (this.gravAcc >= GRAV_MS) {
         this.gravAcc -= GRAV_MS;
         this._applyGravity();
+        this._enemyGravity();
         if (this.over || this.dissolving) { break; }
       }
     }
@@ -844,15 +860,22 @@
 
   Unfold.prototype._enemy = function (x, y, hue) {
     var ctx = this.ctx, c = this.cell;
-    var m = Math.max(2, Math.floor(c * 0.18));
-    ctx.fillStyle = hsl(hue, 75, 52);
-    // Diamond-ish body.
+    var m = Math.max(2, Math.floor(c * 0.16));
+    var cx = x * c + c / 2;
+    var xL = x * c + m, xR = x * c + c - m, yT = y * c + m, yB = y * c + c - m;
+    // A triangle: apex up while patrolling, apex down while dropping.
+    var falling = this.gravity && !this._solid(x, y + 1);
+    ctx.fillStyle = hsl(hue, 78, 54);
     ctx.beginPath();
-    var cx = x * c + c / 2, cy = y * c + c / 2, r = c / 2 - m;
-    ctx.moveTo(cx, cy - r);
-    ctx.lineTo(cx + r, cy);
-    ctx.lineTo(cx, cy + r);
-    ctx.lineTo(cx - r, cy);
+    if (falling) {
+      ctx.moveTo(xL, yT);
+      ctx.lineTo(xR, yT);
+      ctx.lineTo(cx, yB);
+    } else {
+      ctx.moveTo(cx, yT);
+      ctx.lineTo(xR, yB);
+      ctx.lineTo(xL, yB);
+    }
     ctx.closePath();
     ctx.fill();
   };
