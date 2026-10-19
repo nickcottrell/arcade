@@ -363,26 +363,25 @@
   }
 
   // --- announce ----------------------------------------------------------
-  // A short spoken cue for select / start / end. A host (maestro / cue-vox) can
-  // take over by defining window.ArcadeAnnounce or listening for the postMessage;
-  // standalone falls back to the browser's speech synth.
+  // Select / start / end cues are spoken by CUE-VOX, not the browser. We POST
+  // the line to cue-vox's TTS endpoint (/api/speak). It's a "simple" form POST
+  // in no-cors mode, so no preflight and no CORS headers are needed; it's
+  // fire-and-forget (the opaque response is fine). When cue-vox isn't running
+  // (standalone site) the POST just fails silently -- no fallback voice.
+  // A host may override the sink entirely via window.ArcadeAnnounce.
   function announce(text) {
     if (!text) { return; }
-    var msg = { type: "arcade:announce", text: text };
-    try { if (window.opener) { window.opener.postMessage(msg, "*"); } } catch (e) {}
-    try { if (window.parent && window.parent !== window) { window.parent.postMessage(msg, "*"); } } catch (e) {}
     if (typeof window.ArcadeAnnounce === "function") {
       try { window.ArcadeAnnounce(text); return; } catch (e) {}
     }
-    speak(text);
-  }
-  function speak(text) {
-    if (!("speechSynthesis" in window)) { return; }
+    var base = window.CUEVOX_URL || "http://127.0.0.1:3000";
     try {
-      var u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.0; u.pitch = 1.0; u.volume = 0.9;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
+      fetch(base + "/api/speak", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "text=" + encodeURIComponent(text)
+      }).catch(function () {});
     } catch (e) {}
   }
 
